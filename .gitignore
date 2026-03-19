@@ -1,0 +1,1 @@
+# Node modules\nnode_modules/\n\n# Logs\nlogs\n*.log\nnpm-debug.log*\nyarn-debug.log*\nyarn-error.log*\n\n# OS files\n.DS_Store\nThumbs.db\n\n# IDEs\n.vscode/\n
