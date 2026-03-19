@@ -1,0 +1,16 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse JS for syntax errors
+        run: |
+          node -e \"new Function(require('fs').readFileSync('unravl-engine.jsx', 'utf8'))\"
