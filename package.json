@@ -17,5 +17,6 @@
   "bugs": {
     "url": "https://github.com/levi909-create/unravl-engine/issues"
   },
-  "homepage": "https://github.com/levi909-create/unravl-engine#readme"
+  "homepage": "https://github.com/levi909-create/unravl-engine#readme",
+  "type": "module"
 }
