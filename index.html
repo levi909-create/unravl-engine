@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UNRAVL Engine — Live Demo</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0a0a0a;
+      color: #f0ece4;
+      font-family: 'Georgia', serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    @keyframes dr-spin { to { transform: rotate(360deg); } }
+    @keyframes dr-blink { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
+    
+    #root {
+      position: relative;
+      z-index: 10;
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 2.5rem 1.5rem;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+    .header-title { font-size: 10px; letter-spacing: 0.4em; text-transform: uppercase; color: #c8ff00; margin-bottom: 12px; font-family: monospace; }
+    .header-h1 { font-size: clamp(1.8rem, 5vw, 3.2rem); font-weight: bold; line-height: 1.05; }
+    .header-h1 em { font-style: italic; color: #c8ff00; }
+
+    .box {
+      background: rgba(255,255,255,0.025);
+      border: 1px solid rgba(240,236,228,0.06);
+      padding: 1.8rem;
+      margin-bottom: 1.2rem;
+    }
+
+    .upload-zone {
+      border: 2px dashed rgba(240,236,228,0.1);
+      background: rgba(255,255,255,0.01);
+      padding: 1.8rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+      margin-bottom: 1.2rem;
+      border-radius: 4px;
+    }
+    .upload-zone:hover { border-color: #c8ff00; background: rgba(200,255,0,0.04); }
+    .upload-zone.dragging { border-color: #c8ff00; background: rgba(200,255,0,0.04); }
+    .upload-zone input { display: none; }
+    .upload-zone-icon { font-size: 28px; margin-bottom: 8px; opacity: 0.4; }
+    .upload-zone-text { font-family: monospace; font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; color: #d4cfc5; opacity: 0.5; }
+
+    .input-group { margin-bottom: 1.2rem; }
+    label { display: block; font-family: monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: #d4cfc5; opacity: 0.6; margin-bottom: 0.6rem; }
+    textarea, select { width: 100%; padding: 12px; background: rgba(255,255,255,0.03); border: 1px solid rgba(240,236,228,0.1); color: #f0ece4; font-family: 'Georgia', serif; font-size: 14px; border-radius: 2px; }
+    textarea:focus, select:focus { outline: none; border-color: #c8ff00; background: rgba(200,255,0,0.02); }
+    textarea { resize: vertical; min-height: 120px; }
+
+    .button-group { display: flex; gap: 12px; }
+    button {
+      flex: 1;
+      padding: 12px;
+      background: rgba(200,255,0,0.1);
+      border: 1px solid #c8ff00;
+      color: #c8ff00;
+      font-family: monospace;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.3s;
+      border-radius: 2px;
+    }
+    button:hover:not(:disabled) { background: rgba(200,255,0,0.2); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    button.secondary { background: rgba(255,255,255,0.03); border-color: rgba(240,236,228,0.2); color: #d4cfc5; }
+    button.secondary:hover:not(:disabled) { background: rgba(255,255,255,0.08); }
+
+    .medium-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 8px;
+    }
+    .medium-btn {
+      padding: 10px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(240,236,228,0.1);
+      color: #d4cfc5;
+      cursor: pointer;
+      border-radius: 2px;
+      font-family: monospace;
+      font-size: 10px;
+      transition: all 0.3s;
+    }
+    .medium-btn.active, .medium-btn:hover { background: rgba(200,255,0,0.15); border-color: #c8ff00; color: #c8ff00; }
+
+    .status {
+      font-family: monospace;
+      font-size: 10px;
+      color: #d4cfc5;
+      opacity: 0.4;
+      margin-bottom: 1.2rem;
+    }
+    .status.working { color: #c8ff00; opacity: 0.7; animation: dr-blink 1s infinite; }
+
+    .emotions-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 1.2rem; }
+    .emotion-bar { display: flex; align-items: center; gap: 8px; height: 24px; }
+    .emotion-key { font-family: monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; width: 82px; color: #d4cfc5; opacity: 0.6; flex-shrink: 0; }
+    .emotion-bar-bg { flex: 1; height: 4px; background: rgba(240,236,228,0.04); border-radius: 2px; overflow: hidden; }
+    .emotion-bar-fill { height: 100%; border-radius: 2px; transition: width 0.9s cubic-bezier(0.22, 1, 0.36, 1); }
+    .emotion-value { font-family: monospace; font-size: 11px; color: #f0ece4; width: 32px; text-align: right; flex-shrink: 0; }
+    .emotion-note { font-family: monospace; font-size: 9px; color: #d4cfc5; opacity: 0.3; min-width: 90px; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 0; }
+
+    .translation-section {
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(200,255,0,0.1);
+      padding: 1.5rem;
+      border-radius: 2px;
+      margin-bottom: 1.2rem;
+    }
+    .translation-label { font-family: monospace; font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #c8ff00; opacity: 0.5; margin-bottom: 12px; }
+    .translation-text { font-family: 'Georgia', serif; font-size: 15px; line-height: 1.6; color: #f0ece4; }
+
+    .logs { background: rgba(0,0,0,0.5); padding: 12px; border-radius: 2px; margin-bottom: 1.2rem; max-height: 120px; overflow-y: auto; }
+    .log-line { font-family: monospace; font-size: 9px; color: #d4cfc5; opacity: 0.4; margin-bottom: 4px; }
+    .log-line.working { color: #c8ff00; opacity: 0.8; }
+
+    .footer { text-align: center; font-size: 11px; color: #d4cfc5; opacity: 0.3; margin-top: 3rem; }
+    .footer a { color: #c8ff00; text-decoration: none; }
+    .footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div id="root">
+    <div class="header">
+      <div class="header-title">UNRAVL — Live Decomposition Engine</div>
+      <h1 class="header-h1">Feed it art. <em>Watch it decompose.</em></h1>
+    </div>
+
+    <div class="box">
+      <div class="upload-zone" id="uploadZone">
+        <input type="file" id="fileInput" accept="image/*,.txt,.md,.csv,.pdf,.doc,.docx">
+        <div class="upload-zone-icon">⬆</div>
+        <div class="upload-zone-text">Drop an image, text, or document here</div>
+      </div>
+
+      <div class="input-group">
+        <label>Or paste text directly</label>
+        <textarea id="textInput" placeholder="Describe a creative work... or leave empty to analyze uploaded files"></textarea>
+      </div>
+
+      <div class="input-group">
+        <label>Translate into</label>
+        <div class="medium-grid" id="mediumGrid"></div>
+      </div>
+
+      <div class="button-group">
+        <button onclick="runDecompose()">Decompose</button>
+        <button class="secondary" onclick="reset()">Clear</button>
+      </div>
+    </div>
+
+    <div id="workingArea" style="display: none;">
+      <div class="status working" id="statusText">Analyzing...</div>
+      <div class="logs" id="logs"></div>
+
+      <div id="emotionsArea" style="display: none;">
+        <div class="emotions-grid" id="emotionsGrid"></div>
+      </div>
+
+      <div id="translationArea" style="display: none;">
+        <div class="translation-section">
+          <div class="translation-label">Cross-modal Translation</div>
+          <div class="translation-text" id="translationText"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      Built with UNRAVL. <a href="https://github.com/levi909-create/unravl-engine">View Source →</a>
+    </div>
+  </div>
+
+  <script type="module">
+    const EMOTIONS = [
+      { key: "tension", color: "#ff2d2d" },
+      { key: "yearning", color: "#c8ff00" },
+      { key: "wonder", color: "#7b61ff" },
+      { key: "melancholy", color: "#3d8bfd" },
+      { key: "defiance", color: "#ff6b35" },
+      { key: "ecstasy", color: "#ff42a1" },
+      { key: "dread", color: "#8b5cf6" },
+      { key: "tenderness", color: "#34d399" },
+      { key: "fury", color: "#ef4444" },
+      { key: "serenity", color: "#67e8f9" },
+    ];
+
+    const MEDIUMS = [
+      { id: "architecture", label: "Architecture" },
+      { id: "perfume", label: "Perfume" },
+      { id: "choreography", label: "Choreography" },
+      { id: "cuisine", label: "Cuisine" },
+      { id: "fashion", label: "Fashion" },
+      { id: "landscape", label: "Landscape" },
+    ];
+
+    let currentMedium = "architecture";
+    let currentEmotions = [];
+
+    function initMediumGrid() {
+      const grid = document.getElementById("mediumGrid");
+      MEDIUMS.forEach(m => {
+        const btn = document.createElement("button");
+        btn.className = "medium-btn" + (m.id === currentMedium ? " active" : "");
+        btn.textContent = m.label;
+        btn.onclick = () => {
+          document.querySelectorAll(".medium-btn").forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+          currentMedium = m.id;
+        };
+        grid.appendChild(btn);
+      });
+    }
+
+    function addLog(msg) {
+      const logs = document.getElementById("logs");
+      const line = document.createElement("div");
+      line.className = "log-line working";
+      line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      logs.appendChild(line);
+      logs.scrollTop = logs.scrollHeight;
+    }
+
+    function reset() {
+      document.getElementById("textInput").value = "";
+      document.getElementById("fileInput").value = "";
+      document.getElementById("workingArea").style.display = "none";
+      document.getElementById("emotionsArea").style.display = "none";
+      document.getElementById("translationArea").style.display = "none";
+      document.getElementById("logs").innerHTML = "";
+      currentEmotions = [];
+    }
+
+    async function runDecompose() {
+      const text = document.getElementById("textInput").value.trim();
+      if (!text) {
+        alert("Please enter some text first");
+        return;
+      }
+
+      document.getElementById("workingArea").style.display = "block";
+      document.getElementById("logs").innerHTML = "";
+      document.getElementById("emotionsArea").style.display = "none";
+      document.getElementById("translationArea").style.display = "none";
+
+      addLog("Initiating emotional decomposition...");
+      await new Promise(r => setTimeout(r, 600));
+
+      addLog("Analyzing emotional dimensions...");
+      await new Promise(r => setTimeout(r, 800));
+
+      // Simulate decomposition (using simple algorithm)
+      const lower = text.toLowerCase();
+      const seed = lower.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
+      const rng = (i) => ((seed * (i + 7) * 13) % 100) / 1000 - 0.05;
+
+      currentEmotions = EMOTIONS.map((em, i) => ({
+        key: em.key,
+        value: Math.max(0.05, Math.min(0.98, parseFloat((0.5 + rng(i)).toFixed(2)))),
+      }));
+
+      displayEmotions();
+      document.getElementById("emotionsArea").style.display = "block";
+      addLog("Decomposition complete.");
+
+      addLog(`Translating into ${MEDIUMS.find(m => m.id === currentMedium).label}...`);
+      await new Promise(r => setTimeout(r, 1000));
+
+      displayTranslation();
+      document.getElementById("translationArea").style.display = "block";
+      addLog("Translation complete.");
+
+      document.getElementById("statusText").style.display = "none";
+    }
+
+    function displayEmotions() {
+      const grid = document.getElementById("emotionsGrid");
+      grid.innerHTML = "";
+      currentEmotions.forEach(em => {
+        const color = EMOTIONS.find(e => e.key === em.key).color;
+        const bar = document.createElement("div");
+        bar.className = "emotion-bar";
+        bar.innerHTML = `
+          <div class="emotion-key">${em.key}</div>
+          <div class="emotion-bar-bg">
+            <div class="emotion-bar-fill" style="background: ${color}; width: 0%; animation: width-anim 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards; animation-delay: ${currentEmotions.indexOf(em) * 50}ms;"></div>
+          </div>
+          <div class="emotion-value">${em.value.toFixed(2)}</div>
+        `;
+        grid.appendChild(bar);
+        setTimeout(() => {
+          bar.querySelector(".emotion-bar-fill").style.width = (em.value * 100) + "%";
+        }, 100);
+      });
+    }
+
+    function displayTranslation() {
+      const translations = {
+        architecture: "A structure of raw concrete and impossible angles, breathing with the weight of your words, each threshold a compression of meaning.",
+        perfume: "Base notes of soil and salt. Heart: jasmine and the idea of distance. Top: a green note, like air between two people about to touch.",
+        choreography: "Three dancers in shadow. Movement is reaching—every limb extends past its limit. One never leaves the floor. Silence at the end.",
+        cuisine: "Seven courses. Each unnamed. You eat emotional autobiography and leave changed, tasting things that don't officially have flavors.",
+        fashion: "Nine looks. Proportions are wrong. Shoulders extend past the body. Textures refuse comfort. You don't wear this. It wears you.",
+        landscape: "2.5 acres transformed into a sentence you walk through. Entry through towering bamboo. Plantings shift from one emotional state to another. Sound design is wind that only plays what it means.",
+      };
+      document.getElementById("translationText").textContent = translations[currentMedium] || "Translation pending...";
+    }
+
+    // Initialize
+    initMediumGrid();
+
+    // File upload
+    const zone = document.getElementById("uploadZone");
+    const fileInput = document.getElementById("fileInput");
+
+    zone.addEventListener("dragover", e => { e.preventDefault(); zone.classList.add("dragging"); });
+    zone.addEventListener("dragleave", () => zone.classList.remove("dragging"));
+    zone.addEventListener("drop", e => {
+      e.preventDefault();
+      zone.classList.remove("dragging");
+      if (e.dataTransfer.files.length > 0) {
+        fileInput.files = e.dataTransfer.files;
+        const file = e.dataTransfer.files[0];
+        document.getElementById("textInput").value = `[Uploaded: ${file.name}] Please analyze this file.`;
+      }
+    });
+
+    zone.addEventListener("click", () => fileInput.click());
+  </script>
+</body>
+</html>
